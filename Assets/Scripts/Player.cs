@@ -1,13 +1,12 @@
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public abstract class _Player
 {
-    public int Id;          
+    public int Id;
     public string Name;
     public bool IsAI;
-
+    
     protected _Player(int id, string name, bool isAI)
     {
         Id = id;
@@ -19,8 +18,6 @@ public abstract class _Player
 
 public class PlayerHuman : _Player
 {
-    
-    
     private static PlayerHuman _instance;
     public static PlayerHuman Instance
     {
@@ -38,13 +35,11 @@ public class PlayerHuman : _Player
     {
         if (Input.GetMouseButtonDown(0))
         {
-            Debug.Log("dokunuldu");
-            Vector3 mousePos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,+10));
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, +10));
             Collider2D hit = Physics2D.OverlapPoint(mousePos);
 
             if (hit != null)
             {
-                Debug.Log(hit.name);
                 State clickedState = hit.GetComponent<State>();
                 if (clickedState != null && clickedState.Owner == this)
                 {
@@ -78,35 +73,13 @@ public class PlayerHuman : _Player
         if (fromState.unitCount < 1) return;
 
         int soldiersToSend = fromState.unitCount;
-        
+        fromState.unitCount -= soldiersToSend;
 
-        if (targetState.Owner != this)
-        {
-            GameManager.Instance.Attack(soldiersToSend,fromState.transform.position,targetState.transform.position);
-            fromState.unitCount -= soldiersToSend;
-            targetState.unitCount -= soldiersToSend;
-            if (targetState.unitCount <= 0)
-            {
-                targetState.unitCount = Mathf.Abs(targetState.unitCount);
-                targetState.SetOwner(this, State.StateSituation.Player);
-            }
-        }
-        else if(targetState.Owner == this)
-        {
-            fromState.unitCount -= soldiersToSend;
-            GameManager.Instance.Attack(soldiersToSend, fromState.transform.position, targetState.transform.position);
-            targetState.unitCount += soldiersToSend;
-        }
-
-        
+        GameManager.Instance.Attack(soldiersToSend, fromState.transform.position, targetState.transform.position, fromState);
 
         fromState.UpdateUnitText();
-        targetState.UpdateUnitText();
-        targetState.UpdateColor();
     }
 }
-
-
 
 public class PlayerAI : _Player
 {
@@ -114,47 +87,23 @@ public class PlayerAI : _Player
 
     public void MakeMove()
     {
-        var allStates = Object.FindObjectsByType<State>(FindObjectsSortMode.None).ToList();
+        //var allStates = Object.FindObjectsByType<State>(FindObjectsSortMode.None).ToList();
+        var allStates = GameManager.allStates;
         if (allStates.Count < 2) return;
 
-        
         State fromState = allStates[Random.Range(0, allStates.Count)];
+        
         State toState = allStates[Random.Range(0, allStates.Count)];
 
-      
         if (fromState == toState) return;
-
-        if (fromState.unitCount < 1) return;
-
-        int soldiersToSend = Mathf.Max(1, fromState.unitCount / 2);
-
-       
+        if (fromState.unitCount < 2) return;
         if (fromState.Owner != this) return;
 
-        
-        if (toState.Owner == this)
-        {
-            fromState.unitCount -= soldiersToSend;
-            GameManager.Instance.Attack(soldiersToSend, fromState.transform.position, toState.transform.position);
-            toState.unitCount += soldiersToSend;
-        }
-        else
-        {
-           
-            GameManager.Instance.Attack(soldiersToSend, fromState.transform.position, toState.transform.position);
-            fromState.unitCount -= soldiersToSend;
-            toState.unitCount -= soldiersToSend;
+        int soldiersToSend = fromState.unitCount ;
+        fromState.unitCount -= soldiersToSend;
 
-            if (toState.unitCount <= 0)
-            {
-                toState.unitCount = Mathf.Abs(toState.unitCount);
-                toState.SetOwner(this, State.StateSituation.Enemy);
-            }
-        }
+        GameManager.Instance.Attack(soldiersToSend, fromState.transform.position, toState.transform.position, fromState);
 
         fromState.UpdateUnitText();
-        toState.UpdateUnitText();
-        toState.UpdateColor();
     }
 }
-

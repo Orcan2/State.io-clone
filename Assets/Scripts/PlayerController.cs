@@ -7,19 +7,16 @@ public class PlayerController : MonoBehaviour
     private bool isDragging = false;
     private LineRenderer lineRenderer;
 
-    
-
     void Awake()
     {
         lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 0; 
+        lineRenderer.positionCount = 0;
     }
 
     void Update()
     {
         PlayerHuman.Instance.HandleInput(ref selectedState, ref isDragging);
 
-      
         if (isDragging && selectedState != null)
         {
             Vector3 startPos = selectedState.transform.position;
@@ -32,8 +29,7 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            lineRenderer.positionCount = 0; 
+            lineRenderer.positionCount = 0;
         }
     }
-   
 }

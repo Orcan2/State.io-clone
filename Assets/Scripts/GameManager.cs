@@ -1,59 +1,91 @@
 using System.Collections.Generic;
-using TMPro;
+using System.Linq;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-    public DotSoldier[] soldiers = new DotSoldier[50];
- 
+    public List<DotSoldier> soldiers = new List<DotSoldier>();
+    public DotSoldier soldierPrefab;
+    public static List<State> allStates;
     [Header("States in Scene")]
     public State stateA;
     public State stateB;
 
     [Header("Players")]
     private PlayerHuman humanPlayer;
-    private PlayerAI aiPlayer;
+    public PlayerAI AIPlayer { get; private set; }
 
     private float aiTimer = 0f;
-    private float aiMoveInterval = 2f; 
+    private float aiMoveInterval = 2f;
 
     void Awake()
     {
-        
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
         Instance = this;
+        allStates = Object.FindObjectsByType<State>(FindObjectsSortMode.None).ToList();
     }
 
     void Start()
     {
-       
         humanPlayer = PlayerHuman.Instance;
-        aiPlayer = new PlayerAI(1, "Enemy AI");
+        AIPlayer = new PlayerAI(1, "Enemy AI");
 
-        
         stateA.SetOwner(humanPlayer, State.StateSituation.Player);
-        stateB.SetOwner(aiPlayer, State.StateSituation.Enemy);
-    }
+        stateB.SetOwner(AIPlayer, State.StateSituation.Enemy);
 
-    public void Attack(int soldiersCount, Vector2 startPos, Vector2 endPos)
-    {
-        if(soldiersCount < soldiers.Length)
-        for (int i = 0; i < soldiersCount; i++)
+        // baþlangýç havuzu
+        for (int i = 0; i < 30; i++)
         {
-            if (soldiers[i] != null)
-            {
-                soldiers[i].gameObject.transform.position = startPos+new Vector2(0,Random.Range(0,5));
-                soldiers[i].gameObject.SetActive(true);
-
-                StartCoroutine(MoveSoldier(soldiers[i].transform, startPos, endPos, 0.5f + i * 0.05f));
-            }
+            CreateSoldier();
         }
     }
+
+    private DotSoldier CreateSoldier()
+    {
+        DotSoldier newSoldier = Instantiate(soldierPrefab, transform);
+        newSoldier.gameObject.SetActive(false);
+        soldiers.Add(newSoldier);
+        return newSoldier;
+    }
+
+    private DotSoldier GetAvailableSoldier()
+    {
+        foreach (var soldier in soldiers)
+        {
+            if (!soldier.gameObject.activeInHierarchy)
+                return soldier;
+        }
+        return CreateSoldier();
+    }
+
+    public void Attack(int soldiersCount, Vector2 startPos, Vector2 endPos, State owner)
+    {
+        for (int i = 0; i < soldiersCount; i++)
+        {
+            DotSoldier soldier = GetAvailableSoldier();
+            soldier.transform.position = startPos;
+            soldier.gameObject.SetActive(true);
+
+            // id yerine owner enum kullanýyoruz
+            soldier.owner = owner.Owner.IsAI ? DotSoldier.SoldierOwner.AI : DotSoldier.SoldierOwner.Player;
+
+            // spawn state atamasý
+            soldier.spawnState = owner;
+
+            StartCoroutine(MoveSoldier(
+                soldier.transform,
+                startPos,
+                endPos,
+                0.5f + i * 0.05f
+            ));
+        }
+    }
+
 
     private System.Collections.IEnumerator MoveSoldier(Transform soldier, Vector2 startPos, Vector2 endPos, float duration)
     {
@@ -64,17 +96,16 @@ public class GameManager : MonoBehaviour
             elapsed += Time.deltaTime;
             yield return null;
         }
-        soldier.position = endPos; 
-        soldier.gameObject.SetActive(false);
+        // hedefe vardýðýnda çarpýþma tetiklenecek
     }
+
     private void Update()
     {
         aiTimer += Time.deltaTime;
         if (aiTimer >= aiMoveInterval)
         {
             aiTimer = 0f;
-            aiPlayer.MakeMove();
+            AIPlayer.MakeMove();
         }
     }
-
 }

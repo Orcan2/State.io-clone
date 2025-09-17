@@ -1,20 +1,18 @@
 using TMPro;
 using UnityEngine;
 
+[RequireComponent(typeof(Collider2D))]
 public class State : MonoBehaviour
 {
     [Header("State Properties")]
-    public int stateID;
+    //public int stateID;
     public _Player Owner;
     public int unitCount = 0;
-    public float productionRate = 1f; 
+    public float productionRate = 1f;
 
     [Header("References")]
     public TextMeshPro unitCountText;
-    public SpriteRenderer spriteRenderer; 
-
-    public int debugUnitMultiplier=1;
-    private float timer;
+    public SpriteRenderer spriteRenderer;
 
     public enum StateSituation
     {
@@ -25,6 +23,8 @@ public class State : MonoBehaviour
 
     public StateSituation currentSituation = StateSituation.Neutral;
 
+    private float timer;
+
     void Start()
     {
         UpdateColor();
@@ -33,12 +33,10 @@ public class State : MonoBehaviour
 
     void Update()
     {
-        
         timer += Time.deltaTime;
-        if (timer >= 1f / productionRate)
+        if (timer >= 1f / productionRate && Owner != null)
         {
-            
-            unitCount+=debugUnitMultiplier;
+            unitCount++;
             timer = 0f;
             UpdateUnitText();
         }
